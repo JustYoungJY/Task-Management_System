@@ -4,32 +4,21 @@ import app.taskmanagement_system.Priority;
 import app.taskmanagement_system.Status;
 import app.taskmanagement_system.Task;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class TaskService {
-    private final Map<Long, Task> tasks = Map.of(
-            1L, new Task(
-                    1L, 228L, 337L, Status.CREATED, LocalDateTime.now(),
-                    LocalDate.now().plusDays(1), Priority.LOW),
-            2L, new Task(
-                    2L, 337L, 224L, Status.IN_PROGRESS, LocalDateTime.now(),
-                    LocalDate.now().plusDays(2), Priority.MEDIUM),
-            3L, new Task(
-                    3L, 300L, 200L, Status.IN_PROGRESS, LocalDateTime.now(),
-                    LocalDate.now().plusDays(3), Priority.HIGH)
-    );  // Some test data
 
-    @GetMapping("/{id}")
-    public Task getTaskById(@PathVariable("id") Long id) {
+    AtomicLong counter = new AtomicLong();
+    private final Map<Long, Task> tasks = new HashMap<>();
+
+
+    public Task getTaskById(Long id) {
         if(!tasks.containsKey(id)) {
             throw new NoSuchElementException("Not found task with id: " + id);
         }
@@ -39,6 +28,58 @@ public class TaskService {
 
     public List<Task> getAllTasks() {
         return new ArrayList<>(tasks.values());
+    }
+
+    public Task createTask(Task task) {
+        if (task.id() != null) {
+            throw new IllegalArgumentException("Task id should be empty");
+        }
+        if(task.status() != Status.CREATED) {
+            throw new IllegalArgumentException("Task status should be empty");
+        }
+
+        Task newTask = new Task(
+                counter.incrementAndGet(),
+                task.creatorId(),
+                task.assignedUserId(),
+                Status.CREATED,
+                task.localDateTime(),
+                task.deadlineDate(),
+                task.priority()
+        );
+
+        tasks.put(newTask.id(), newTask);
+        return newTask;
+    }
+
+    public Task updateTask(Long id, Task task) {
+        if(!tasks.containsKey(id)) {
+            throw new NoSuchElementException("Not found task with id: " + id);
+        }
+        if(tasks.get(id).status() == Status.DONE) {
+            throw new IllegalArgumentException("Task already completed");
+        }
+
+        Task newTask = new Task(
+                tasks.get(id).id(),
+                task.creatorId(),
+                task.assignedUserId(),
+                task.status(),
+                task.localDateTime(),
+                task.deadlineDate(),
+                task.priority()
+        );
+
+        tasks.put(id, newTask);
+
+        return newTask;
+    }
+
+    public void deleteTask(Long id) {
+        if(!tasks.containsKey(id)) {
+            throw new NoSuchElementException("Not found task with id: " + id);
+        }
+        tasks.remove(id);
     }
 
 }
