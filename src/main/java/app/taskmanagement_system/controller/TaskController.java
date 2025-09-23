@@ -1,13 +1,16 @@
 package app.taskmanagement_system.controller;
 
+import app.taskmanagement_system.Priority;
+import app.taskmanagement_system.Status;
 import app.taskmanagement_system.Task;
+import app.taskmanagement_system.TaskSearchFilter;
 import app.taskmanagement_system.service.TaskService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -22,13 +25,6 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    @GetMapping
-    public ResponseEntity<List<Task>> getAllTasks() {
-        logger.info("Handling GET request for /tasks");
-        List<Task> allTasks = new ArrayList<>(taskService.getAllTasks());
-        logger.info("Finished handling GET request for /tasks. Returned " + allTasks.size() + " tasks");
-        return ResponseEntity.ok(allTasks);
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<Task> getTaskById(@PathVariable Long id) {
@@ -76,5 +72,22 @@ public class TaskController {
         Task completedTask = taskService.completeTask(id);
         logger.info("Finished handling POST request for /tasks/" + id);
         return ResponseEntity.ok(completedTask);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Task>> searchTasks(
+            @RequestParam(required = false) Long creatorId,
+            @RequestParam(required = false) Long assignedUserId,
+            @RequestParam(required = false) Status status,
+            @RequestParam(required = false) Priority priority,
+            Pageable pageable
+    ) {
+        logger.info("Handling GET request for /tasks/search");
+
+        TaskSearchFilter taskSearchFilter = new TaskSearchFilter(creatorId, assignedUserId, status, priority);
+        List<Task> tasks = taskService.searchTasks(taskSearchFilter, pageable);
+
+        logger.info("Finished handling GET request for /tasks/search");
+        return ResponseEntity.ok(tasks);
     }
 }
